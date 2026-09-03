@@ -7,11 +7,11 @@ This project is currently developed inside WSL2. If `conda` or `pip` cannot reac
 Observed on this host:
 
 1. WSL distro: Ubuntu 22.04 on WSL2.
-2. Windows system proxy: `127.0.0.1:7892`.
+2. Windows system proxy: `127.0.0.1:7892` or `127.0.0.1:7893`, depending on the proxy app state.
 3. Proxy process: `ziyoumaoCore`.
 4. WSL default gateway: `172.25.128.1`.
-5. The proxy listens only on Windows `127.0.0.1:7892`.
-6. WSL cannot connect to `127.0.0.1:7892`, `172.25.128.1:7892`, or `host.docker.internal:7892`.
+5. The proxy listens only on Windows `127.0.0.1:<proxy-port>`.
+6. WSL cannot connect to `127.0.0.1:<proxy-port>`, `172.25.128.1:<proxy-port>`, or `host.docker.internal:<proxy-port>`.
 
 That means package managers inside WSL currently have no usable proxy path. GitHub may still work because it can be handled by a different proxy or DNS rule, but `conda` and `pip` package-source domains are not guaranteed to follow the same path.
 
@@ -81,6 +81,25 @@ LocalAddress LocalPort
 
 If it still shows only `127.0.0.1`, the proxy app has not opened LAN access.
 
+## Fix Path C2: Windows Port Proxy
+
+If the proxy app cannot listen on `0.0.0.0`, use Windows port forwarding. Run PowerShell as Administrator:
+
+```powershell
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=7899 connectaddress=127.0.0.1 connectport=7893
+New-NetFirewallRule -DisplayName "WSL proxy 7899" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 7899
+```
+
+Then in WSL:
+
+```bash
+cd /home/breeze/my-project/CRAFT
+CRAFT_PROXY_PORT=7899 source scripts/proxy_env.sh
+bash scripts/check_network.sh
+```
+
+Use `connectport=7892` instead of `7893` if Windows currently reports `ProxyServer: 127.0.0.1:7892`.
+
 ## Fix Path D: Offline Or Semi-Offline Install
 
 If proxy access cannot be fixed immediately, development is not blocked completely:
@@ -119,3 +138,4 @@ Override proxy host or port:
 CRAFT_PROXY_HOST=172.25.128.1 CRAFT_PROXY_PORT=7892 source scripts/proxy_env.sh
 ```
 
+The scripts auto-detect the Windows proxy port when possible, so the manual `CRAFT_PROXY_PORT` override is only needed for custom forwarding ports such as `7899`.
