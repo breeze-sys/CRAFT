@@ -110,9 +110,12 @@ The latest script already adds `src` to `sys.path` automatically, so this should
 
 ```bash
 make check
+make check-full
 make test
 make lint
 make format
 ```
 
-Before dependencies are installed, `scripts/check_environment.py` will report missing packages. That is expected.
+`make check` only verifies the baseline Python/project setup. `make check-full` additionally verifies runtime dependencies such as Grid2Op and gmssl.
+
+Before dependencies are installed, `scripts/check_environment.py --full` will report missing packages. That is expected.

@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: setup setup-local check test lint format
+.PHONY: setup setup-local check check-full test lint format
 
 setup:
 	$(PYTHON) -m pip install --upgrade pip
@@ -11,6 +11,9 @@ setup-local:
 
 check:
 	PYTHONPATH=src $(PYTHON) scripts/check_environment.py
+
+check-full:
+	PYTHONPATH=src $(PYTHON) scripts/check_environment.py --full
 
 test:
 	PYTHONPATH=src $(PYTHON) -m pytest

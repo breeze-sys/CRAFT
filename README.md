@@ -376,12 +376,14 @@ python scripts/check_environment.py
 make setup
 make setup-local
 make check
+make check-full
 make test
 make lint
 make format
 ```
 
 `make setup-local` 只安装 CRAFT 项目自身，不安装第三方依赖，适合包源暂时不可达时先跑本地脚本。
+`make check` 只检查基础 Python 和项目导入，`make check-full` 才检查 Grid2Op、gmssl 等完整运行依赖。
 
 当前仓库已经包含：
 
