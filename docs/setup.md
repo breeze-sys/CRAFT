@@ -114,6 +114,8 @@ The latest script already adds `src` to `sys.path` automatically, so this should
 make check
 make check-full
 make check-grid
+make download-grid-data
+make check-grid-real
 make test
 make lint
 make format
@@ -121,6 +123,7 @@ make format
 
 `make check` only verifies the baseline Python/project setup. `make check-full` additionally verifies runtime dependencies such as Grid2Op and gmssl.
 `make check-grid` creates the default Grid2Op case14 smoke-test environments and runs one no-op step in each.
+`make download-grid-data` downloads the default compact non-test Grid2Op dataset. `make check-grid-real` loads that dataset and runs one no-op step.
 
 Before dependencies are installed, `scripts/check_environment.py --full` will report missing packages. That is expected.
 
@@ -131,3 +134,42 @@ python -m pip install -e ".[grid-accelerated]"
 ```
 
 Keep this optional for the first MVP; the default PandaPower backend is enough for functional demos.
+
+## Non-Test Grid2Op Dataset
+
+Default dataset:
+
+```bash
+l2rpn_neurips_2020_track1_small
+```
+
+Why this one:
+
+1. It is a non-test L2RPN competition dataset.
+2. It is about 900 MB according to the Grid2Op documentation, safely below the 5G local storage budget.
+3. It has a 36-substation / 59-line grid, which is more convincing for risk-adaptive authorization demos than the case14 smoke-test environments.
+4. Grid2Op stores downloaded datasets outside this repository, usually under `/home/breeze/data_grid2op`.
+
+Useful commands:
+
+```bash
+cd /home/breeze/my-project/CRAFT
+conda run -n craft python scripts/download_grid2op_dataset.py list
+conda run -n craft python scripts/download_grid2op_dataset.py download
+conda run -n craft python scripts/download_grid2op_dataset.py inspect
+conda run -n craft make check-grid-real PYTHON=python
+```
+
+The downloader uses curated direct dataset URLs and checks the remote archive size before download when `Content-Length` is available. The default dataset asset currently reports `896,471,190` bytes from Azure Blob storage.
+If the remote size probe times out, the downloader prints a warning and continues; the local 5G budget is still enforced through the curated dataset metadata and extraction-size check.
+When `curl` is available, the downloader uses resumable mode (`curl -C -`) with retries. If the large file transfer is slow or interrupted, run the same download command again and it will continue from the partial archive in `/home/breeze/data_grid2op/.downloads`.
+If `curl` returns HTTP range error `33`, the script will automatically discard the incompatible partial archive and retry from scratch without resumable mode.
+
+If the default 2020 dataset is too slow on the current network, use the smaller non-test fallback:
+
+```bash
+cd /home/breeze/my-project/CRAFT
+conda run --no-capture-output -n craft python scripts/download_grid2op_dataset.py download l2rpn_2019
+```
+
+`l2rpn_2019` ships with an old `ReadPypowNetData` import in its dataset `config.py`. The CRAFT dataset helper patches this import automatically for Grid2Op `>=1.12` during download, inspect and smoke checks.

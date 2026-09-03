@@ -40,6 +40,7 @@ grid-accelerated = [
 
 [project.scripts]
 craft-env-check = "craft.environment:main"
+craft-grid2op-dataset = "craft.grid2op_datasets:main"
 craft-grid2op-check = "craft.grid2op_health:main"
 
 [tool.setuptools.packages.find]

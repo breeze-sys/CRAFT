@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 DEFAULT_GRID2OP_ENV = "l2rpn_case14_sandbox"
+DEFAULT_GRID2OP_REAL_ENV = "l2rpn_neurips_2020_track1_small"
 SMOKE_TEST_ENVS = ("l2rpn_case14_sandbox", "educ_case14_redisp")
 
 
@@ -39,6 +40,11 @@ def run_grid2op_smoke(env_name: str, *, test: bool = True) -> Grid2OpHealthResul
         warnings.filterwarnings("ignore", message="You are using a development environment.*")
         import grid2op
 
+        if not test:
+            from craft.grid2op_datasets import apply_dataset_compatibility_patches
+
+            for patch_message in apply_dataset_compatibility_patches(env_name):
+                print(f"Compatibility patch: {patch_message}")
         env = grid2op.make(env_name, test=test)
 
     try:
@@ -97,17 +103,27 @@ def build_parser() -> ArgumentParser:
         action="store_true",
         help="check the default CRAFT smoke-test environments",
     )
+    parser.add_argument(
+        "--real-default",
+        action="store_true",
+        help=f"check the compact non-test dataset ({DEFAULT_GRID2OP_REAL_ENV})",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    env_names = SMOKE_TEST_ENVS if args.all_defaults else (args.env,)
+    if args.real_default:
+        env_names = (DEFAULT_GRID2OP_REAL_ENV,)
+        test = False
+    else:
+        env_names = SMOKE_TEST_ENVS if args.all_defaults else (args.env,)
+        test = not args.no_test
 
     for index, env_name in enumerate(env_names):
         if index:
             print()
-        result = run_grid2op_smoke(env_name, test=not args.no_test)
+        result = run_grid2op_smoke(env_name, test=test)
         print(format_result(result))
 
     return 0

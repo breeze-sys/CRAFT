@@ -41,3 +41,4 @@ build/
 logs/
 tmp/
 temp/
+data_grid2op/

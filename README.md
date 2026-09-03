@@ -262,6 +262,50 @@ ExecutionReceipt
 AuditEvent
 ```
 
+当前代码已经把这些对象固化为 Pydantic v2 数据模型，并提供确定性 JSON 和 SM3 摘要：
+
+```text
+src/craft/models.py
+  ActorIdentity
+  GridStateRef
+  ActionRequest
+  SimulatorInfo
+  ConsequenceMetrics
+  PhysicalConsequenceCertificate
+  Approval
+  ApprovalSet
+  ExecutionTicket
+  ExecutionReceipt
+  AuditEvent
+
+src/craft/serialization.py
+  canonical_json(value)
+  canonical_digest_hex(value)
+  sm3_digest_hex(bytes_or_text)
+
+src/craft/policy.py
+  RiskPolicy
+  DEFAULT_RISK_POLICY
+```
+
+建模约定：
+
+1. `ActionRequest.digest()` 绑定动作类型、参数、目标状态、请求者、Nonce 和时间戳。
+2. `PhysicalConsequenceCertificate.signing_digest()` 排除 `evaluator_signature`，作为 Evaluator 的待签名内容。
+3. `PhysicalConsequenceCertificate.certificate_digest()` 包含签名字段，作为审批者绑定的完整 PCC 信封摘要。
+4. `Approval.signing_digest()` 排除 `signature`，绑定 `action_digest`、`pcc_digest`、`policy_digest`、角色、审批者、Nonce 和有效期。
+5. `ApprovalSet` 会拒绝角色不匹配、摘要不匹配和重复角色审批。
+6. `ExecutionTicket` 和 `ExecutionReceipt` 分别用于执行前授权票据和执行后可审计回执。
+
+第一版默认策略为：
+
+```text
+L1 -> Operator
+L2 -> Operator + Dispatcher
+L3 -> Operator + Dispatcher + Safety Officer
+REJECT -> no authorization path
+```
+
 ## 8. Threat Model
 
 第一版威胁模型应覆盖：
@@ -378,6 +422,8 @@ make setup-local
 make check
 make check-full
 make check-grid
+make download-grid-data
+make check-grid-real
 make test
 make lint
 make format
@@ -386,7 +432,39 @@ make format
 `make setup-local` 只安装 CRAFT 项目自身，不安装第三方依赖，适合包源暂时不可达时先跑本地脚本。
 `make check` 只检查基础 Python 和项目导入，`make check-full` 才检查 Grid2Op、gmssl 等完整运行依赖。
 `make check-grid` 会创建 `l2rpn_case14_sandbox` 和 `educ_case14_redisp`，并各执行一次空动作 step，用于验证 Grid2Op 仿真底座。
+`make download-grid-data` 会下载默认非 test 数据集 `l2rpn_neurips_2020_track1_small` 到 Grid2Op 标准目录，当前为 `/home/breeze/data_grid2op`。
+下载器默认优先使用 `curl -C -`，支持断点续传和重试；网络慢时可以多次重复执行同一命令。
+`make check-grid-real` 会在非 test 数据集上运行一次 Grid2Op smoke test。
 如需 Grid2Op 加速，可额外安装 `python -m pip install -e ".[grid-accelerated]"`；第一版功能演示不强制要求。
+
+### Grid2Op Dataset Choice
+
+默认非 test 数据集：
+
+```text
+l2rpn_neurips_2020_track1_small
+```
+
+选择理由：
+
+1. 官方文档标注约 900 MB，低于本项目设定的 5G 上限。
+2. 它不是 test/education-only 环境，而是 NeurIPS 2020 L2RPN robustness track 的训练环境。
+3. 规模为 36 substations、59 powerlines、22 generators、37 loads，比 14-bus toy 环境更适合展示风险自适应授权。
+4. `_small` 版本是官方推荐的标准实验规模，避免 `_large` 数据集带来的下载和内存负担。
+
+相关命令：
+
+```bash
+python scripts/download_grid2op_dataset.py list
+python scripts/download_grid2op_dataset.py download
+python scripts/download_grid2op_dataset.py inspect
+```
+
+如果大文件下载链路不稳定，可以先下载更小的非 test 备选 `l2rpn_2019`，远端压缩包约 223.4 MB：
+
+```bash
+python scripts/download_grid2op_dataset.py download l2rpn_2019
+```
 
 当前仓库已经包含：
 
