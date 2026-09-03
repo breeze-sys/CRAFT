@@ -31,7 +31,7 @@ Keep the port as `7892` unless the app shows a different HTTP/Mixed proxy port.
 Then, in WSL:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 source scripts/proxy_env.sh
 bash scripts/check_network.sh
 ```
@@ -93,7 +93,7 @@ New-NetFirewallRule -DisplayName "WSL proxy 7899" -Direction Inbound -Action All
 Then in WSL:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 CRAFT_PROXY_PORT=7899 source scripts/proxy_env.sh
 bash scripts/check_network.sh
 ```

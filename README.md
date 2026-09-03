@@ -388,7 +388,7 @@ Python >=3.10,<3.13
 如果使用 conda：
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 conda env create -f environment.yml
 conda activate craft
 python scripts/check_environment.py
@@ -397,7 +397,7 @@ python scripts/check_environment.py
 如果 `repo.anaconda.com` 连接失败，可以改用镜像版：
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 conda env create -f environment-cn.yml
 conda activate craft
 python scripts/check_environment.py
@@ -406,7 +406,7 @@ python scripts/check_environment.py
 如果使用本地虚拟环境：
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 python3.10 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -432,7 +432,7 @@ make format
 `make setup-local` 只安装 CRAFT 项目自身，不安装第三方依赖，适合包源暂时不可达时先跑本地脚本。
 `make check` 只检查基础 Python 和项目导入，`make check-full` 才检查 Grid2Op、gmssl 等完整运行依赖。
 `make check-grid` 会创建 `l2rpn_case14_sandbox` 和 `educ_case14_redisp`，并各执行一次空动作 step，用于验证 Grid2Op 仿真底座。
-`make download-grid-data` 会下载默认非 test 数据集 `l2rpn_neurips_2020_track1_small` 到项目本地数据目录，当前为 `/home/breeze/my-project/CRAFT/data/grid2op`。
+`make download-grid-data` 会下载默认非 test 数据集 `l2rpn_2019` 到项目本地数据目录 `data/grid2op`。
 下载器默认优先使用 `curl -C -`，支持断点续传和重试；网络慢时可以多次重复执行同一命令。
 `make check-grid-real` 会在非 test 数据集上运行一次 Grid2Op smoke test。
 如需 Grid2Op 加速，可额外安装 `python -m pip install -e ".[grid-accelerated]"`；第一版功能演示不强制要求。
@@ -442,15 +442,15 @@ make format
 默认非 test 数据集：
 
 ```text
-l2rpn_neurips_2020_track1_small
+l2rpn_2019
 ```
 
 选择理由：
 
-1. 官方文档标注约 900 MB，低于本项目设定的 5G 上限。
-2. 它不是 test/education-only 环境，而是 NeurIPS 2020 L2RPN robustness track 的训练环境。
-3. 规模为 36 substations、59 powerlines、22 generators、37 loads，比 14-bus toy 环境更适合展示风险自适应授权。
-4. `_small` 版本是官方推荐的标准实验规模，避免 `_large` 数据集带来的下载和内存负担。
+1. 它不是 test/education-only 环境，可以用于非 test 的 Grid2Op 流程验证。
+2. 已在本机下载并验证通过，磁盘占用约 231.6 MiB。
+3. 规模为 14 substations、20 powerlines、5 generators、11 loads，足够先开发 Consequence Evaluator、Risk Engine、PCC 和再授权流程。
+4. 默认使用更小数据集可以降低队友首次部署成本，避免把网络问题变成项目入口门槛。
 
 数据目录约定：
 
@@ -466,6 +466,8 @@ CRAFT 脚本默认使用 `data/grid2op/`，不会修改全局 `~/.grid2opconfig.
 export CRAFT_GRID2OP_DATA_DIR=/path/to/grid2op-data
 ```
 
+如果只写相对路径，例如 `CRAFT_GRID2OP_DATA_DIR=data/grid2op`，CRAFT 会按仓库根目录解析，而不是按当前 shell 的工作目录解析。
+
 相关命令：
 
 ```bash
@@ -474,10 +476,10 @@ python scripts/download_grid2op_dataset.py download
 python scripts/download_grid2op_dataset.py inspect
 ```
 
-如果大文件下载链路不稳定，可以先下载更小的非 test 备选 `l2rpn_2019`，远端压缩包约 223.4 MB：
+`l2rpn_neurips_2020_track1_small` 约 900 MB，适合后期做更有说服力的报告实验和演示截图，但不是当前 MVP 必需项：
 
 ```bash
-python scripts/download_grid2op_dataset.py download l2rpn_2019
+python scripts/download_grid2op_dataset.py download l2rpn_neurips_2020_track1_small
 ```
 
 当前仓库已经包含：

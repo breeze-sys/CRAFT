@@ -62,3 +62,15 @@ def test_default_grid2op_data_dir_is_project_local(monkeypatch) -> None:
     assert grid2op_datasets.get_configured_grid2op_data_dir() == (
         grid2op_datasets.REPO_ROOT / "data" / "grid2op"
     )
+
+
+def test_relative_grid2op_data_dir_is_resolved_from_repo_root(monkeypatch) -> None:
+    monkeypatch.setenv(grid2op_datasets.ENV_GRID2OP_DATA_DIR, "local-data/grid2op")
+
+    assert grid2op_datasets.get_configured_grid2op_data_dir() == (
+        grid2op_datasets.REPO_ROOT / "local-data" / "grid2op"
+    )
+
+
+def test_default_non_test_dataset_is_lightweight() -> None:
+    assert grid2op_datasets.DEFAULT_NON_TEST_DATASET == "l2rpn_2019"

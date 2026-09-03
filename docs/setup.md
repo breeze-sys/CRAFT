@@ -7,7 +7,7 @@ Use Python 3.10 for the first competition MVP. The host default Python may be ne
 ## Option A: Conda
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 conda env create -f environment.yml
 conda activate craft
 python scripts/check_environment.py
@@ -16,7 +16,7 @@ python scripts/check_environment.py
 If the default Anaconda repository is blocked, use the China mirror file:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 conda env create -f environment-cn.yml
 conda activate craft
 python scripts/check_environment.py
@@ -25,7 +25,7 @@ python scripts/check_environment.py
 Or create the environment in two explicit steps:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 conda create -n craft \
   -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge \
   --override-channels \
@@ -46,7 +46,7 @@ python scripts/check_environment.py
 ## Option B: venv
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 python3.10 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -59,7 +59,7 @@ On some Ubuntu installations, `python3.10 -m venv` fails because `ensurepip` is 
 ## Quick Bootstrap
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 bash scripts/bootstrap_env.sh
 ```
 
@@ -68,7 +68,7 @@ The script prefers conda when available and falls back to `python3.10 -m venv`.
 To use the China mirror file with the bootstrap script:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 CRAFT_CONDA_ENV_FILE=environment-cn.yml bash scripts/bootstrap_env.sh
 ```
 
@@ -79,7 +79,7 @@ If package sources cannot be reached, read `docs/network.md` first. In WSL, pack
 If package sources are temporarily unreachable, you can still create a lightweight local environment and install only the CRAFT package itself:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 conda run -n mia python -m venv .venv
 .venv/bin/python -m pip install -e . --no-deps --no-build-isolation
 .venv/bin/python scripts/check_environment.py
@@ -140,36 +140,38 @@ Keep this optional for the first MVP; the default PandaPower backend is enough f
 Default dataset:
 
 ```bash
-l2rpn_neurips_2020_track1_small
+l2rpn_2019
 ```
 
 Why this one:
 
 1. It is a non-test L2RPN competition dataset.
-2. It is about 900 MB according to the Grid2Op documentation, safely below the 5G local storage budget.
-3. It has a 36-substation / 59-line grid, which is more convincing for risk-adaptive authorization demos than the case14 smoke-test environments.
+2. It is already verified locally and uses about 231.6 MiB.
+3. It is enough for developing the first Consequence Evaluator, Risk Engine, PCC and reauthorization path.
 4. CRAFT stores downloaded datasets under the project-local ignored directory `data/grid2op`.
 
 Useful commands:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
+cd CRAFT
 conda run -n craft python scripts/download_grid2op_dataset.py list
 conda run -n craft python scripts/download_grid2op_dataset.py download
 conda run -n craft python scripts/download_grid2op_dataset.py inspect
 conda run -n craft make check-grid-real PYTHON=python
 ```
 
-The downloader uses curated direct dataset URLs and checks the remote archive size before download when `Content-Length` is available. The default dataset asset currently reports `896,471,190` bytes from Azure Blob storage.
+The downloader uses curated direct dataset URLs and checks the remote archive size before download when `Content-Length` is available.
 If the remote size probe times out, the downloader prints a warning and continues; the local 5G budget is still enforced through the curated dataset metadata and extraction-size check.
-When `curl` is available, the downloader uses resumable mode (`curl -C -`) with retries. If the large file transfer is slow or interrupted, run the same download command again and it will continue from the partial archive in `/home/breeze/my-project/CRAFT/data/grid2op/.downloads`.
+When `curl` is available, the downloader uses resumable mode (`curl -C -`) with retries. If the large file transfer is slow or interrupted, run the same download command again and it will continue from the partial archive in `data/grid2op/.downloads`.
 If `curl` returns HTTP range error `33`, the script will automatically discard the incompatible partial archive and retry from scratch without resumable mode.
 
 CRAFT scripts point Grid2Op to the project-local directory by default:
 
 ```bash
-/home/breeze/my-project/CRAFT/data/grid2op
+data/grid2op
 ```
+
+Relative paths in `CRAFT_GRID2OP_DATA_DIR` are resolved from the repository root, not the caller's current working directory.
 
 Override it only when you intentionally want datasets on another disk:
 
@@ -177,11 +179,10 @@ Override it only when you intentionally want datasets on another disk:
 export CRAFT_GRID2OP_DATA_DIR=/path/to/grid2op-data
 ```
 
-If the default 2020 dataset is too slow on the current network, use the smaller non-test fallback:
+The 900 MB `l2rpn_neurips_2020_track1_small` dataset is optional. It is useful later for more convincing report experiments and screenshots, but it is not required for the current MVP implementation:
 
 ```bash
-cd /home/breeze/my-project/CRAFT
-conda run --no-capture-output -n craft python scripts/download_grid2op_dataset.py download l2rpn_2019
+conda run --no-capture-output -n craft python scripts/download_grid2op_dataset.py download l2rpn_neurips_2020_track1_small
 ```
 
 `l2rpn_2019` ships with an old `ReadPypowNetData` import in its dataset `config.py`. The CRAFT dataset helper patches this import automatically for Grid2Op `>=1.12` during download, inspect and smoke checks.

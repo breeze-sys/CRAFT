@@ -15,7 +15,7 @@ Ignored:
 Default Grid2Op data path used by CRAFT scripts:
 
 ```text
-/home/breeze/my-project/CRAFT/data/grid2op
+data/grid2op
 ```
 
 Override it with:

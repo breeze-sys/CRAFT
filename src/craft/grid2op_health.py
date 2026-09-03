@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 DEFAULT_GRID2OP_ENV = "l2rpn_case14_sandbox"
-DEFAULT_GRID2OP_REAL_ENV = "l2rpn_neurips_2020_track1_small"
+DEFAULT_GRID2OP_REAL_ENV = "l2rpn_2019"
 SMOKE_TEST_ENVS = ("l2rpn_case14_sandbox", "educ_case14_redisp")
 
 

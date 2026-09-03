@@ -1,5 +1,5 @@
 PYTHON ?= python
-CRAFT_GRID2OP_REAL_ENV ?= l2rpn_neurips_2020_track1_small
+CRAFT_GRID2OP_REAL_ENV ?= l2rpn_2019
 
 .PHONY: setup setup-local check check-full check-grid check-grid-real download-grid-data test lint format
 

@@ -18,7 +18,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 MAX_DATASET_BYTES = 5 * 1024**3
-DEFAULT_NON_TEST_DATASET = "l2rpn_neurips_2020_track1_small"
+DEFAULT_NON_TEST_DATASET = "l2rpn_2019"
 CHUNK_SIZE = 1024 * 1024
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_GRID2OP_DATA_DIR = REPO_ROOT / "data" / "grid2op"
@@ -42,19 +42,19 @@ CURATED_NON_TEST_DATASETS: tuple[DatasetCandidate, ...] = (
         name="l2rpn_2019",
         estimated_size_gb=0.22,
         grid_size="14-bus L2RPN 2019 benchmark",
-        recommended_for="smallest non-test fallback when large dataset downloads are unstable",
+        recommended_for="default lightweight non-test dataset for MVP development",
         url="https://l2rpnukstorageprem.blob.core.windows.net/l2rpnarchive/l2rpn_2019.tar.bz2",
+        preferred=True,
     ),
     DatasetCandidate(
         name="l2rpn_neurips_2020_track1_small",
         estimated_size_gb=0.9,
         grid_size="36 substations, 59 lines",
-        recommended_for="default CRAFT MVP dataset: non-test, compact, competition-grade chronics",
+        recommended_for="optional report-grade dataset with richer topology and chronics",
         url=(
             "https://l2rpnukstorageprem.blob.core.windows.net/l2rpnarchive/"
             "l2rpn_neurips_2020_track1_small.tar.bz2"
         ),
-        preferred=True,
     ),
     DatasetCandidate(
         name="l2rpn_icaps_2021_small",
@@ -104,13 +104,22 @@ def _suppress_grid2op_warnings() -> None:
 def get_configured_grid2op_data_dir() -> Path:
     data_dir = os.getenv(ENV_GRID2OP_DATA_DIR)
     if data_dir:
-        return Path(data_dir).expanduser().resolve()
+        path = Path(data_dir).expanduser()
+        if not path.is_absolute():
+            path = REPO_ROOT / path
+        return path.resolve()
     return DEFAULT_GRID2OP_DATA_DIR.resolve()
 
 
 def configure_grid2op_data_dir(data_dir: Path | None = None) -> Path:
     """Point Grid2Op to the CRAFT project-local dataset directory."""
-    target = (data_dir or get_configured_grid2op_data_dir()).expanduser().resolve()
+    if data_dir is None:
+        target = get_configured_grid2op_data_dir()
+    else:
+        target = data_dir.expanduser()
+        if not target.is_absolute():
+            target = REPO_ROOT / target
+        target = target.resolve()
     _suppress_grid2op_warnings()
     import grid2op.MakeEnv.PathUtils as path_utils
 
