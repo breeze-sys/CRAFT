@@ -72,6 +72,8 @@ cd /home/breeze/my-project/CRAFT
 CRAFT_CONDA_ENV_FILE=environment-cn.yml bash scripts/bootstrap_env.sh
 ```
 
+If package sources cannot be reached, read `docs/network.md` first. In WSL, package managers often need explicit proxy environment variables even when the Windows browser already works.
+
 ## Offline Local Package Fallback
 
 If package sources are temporarily unreachable, you can still create a lightweight local environment and install only the CRAFT package itself:

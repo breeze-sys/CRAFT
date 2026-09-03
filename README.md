@@ -404,6 +404,12 @@ make format
 bash scripts/bootstrap_env.sh
 ```
 
+如果 conda 或 pip 无法访问包源，先看 `docs/network.md`，并用下面的命令检查 WSL 到 Windows 代理的连通性：
+
+```bash
+bash scripts/check_network.sh
+```
+
 ## 11. Demo Plan
 
 **Demo 1：正常低风险操作**
