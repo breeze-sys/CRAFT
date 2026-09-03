@@ -432,7 +432,7 @@ make format
 `make setup-local` 只安装 CRAFT 项目自身，不安装第三方依赖，适合包源暂时不可达时先跑本地脚本。
 `make check` 只检查基础 Python 和项目导入，`make check-full` 才检查 Grid2Op、gmssl 等完整运行依赖。
 `make check-grid` 会创建 `l2rpn_case14_sandbox` 和 `educ_case14_redisp`，并各执行一次空动作 step，用于验证 Grid2Op 仿真底座。
-`make download-grid-data` 会下载默认非 test 数据集 `l2rpn_neurips_2020_track1_small` 到 Grid2Op 标准目录，当前为 `/home/breeze/data_grid2op`。
+`make download-grid-data` 会下载默认非 test 数据集 `l2rpn_neurips_2020_track1_small` 到项目本地数据目录，当前为 `/home/breeze/my-project/CRAFT/data/grid2op`。
 下载器默认优先使用 `curl -C -`，支持断点续传和重试；网络慢时可以多次重复执行同一命令。
 `make check-grid-real` 会在非 test 数据集上运行一次 Grid2Op smoke test。
 如需 Grid2Op 加速，可额外安装 `python -m pip install -e ".[grid-accelerated]"`；第一版功能演示不强制要求。
@@ -451,6 +451,20 @@ l2rpn_neurips_2020_track1_small
 2. 它不是 test/education-only 环境，而是 NeurIPS 2020 L2RPN robustness track 的训练环境。
 3. 规模为 36 substations、59 powerlines、22 generators、37 loads，比 14-bus toy 环境更适合展示风险自适应授权。
 4. `_small` 版本是官方推荐的标准实验规模，避免 `_large` 数据集带来的下载和内存负担。
+
+数据目录约定：
+
+```text
+data/
+  README.md      # tracked
+  grid2op/       # ignored local Grid2Op datasets
+```
+
+CRAFT 脚本默认使用 `data/grid2op/`，不会修改全局 `~/.grid2opconfig.json`。如果需要把数据放到其他磁盘，可以设置：
+
+```bash
+export CRAFT_GRID2OP_DATA_DIR=/path/to/grid2op-data
+```
 
 相关命令：
 

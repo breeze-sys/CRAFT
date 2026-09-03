@@ -148,7 +148,7 @@ Why this one:
 1. It is a non-test L2RPN competition dataset.
 2. It is about 900 MB according to the Grid2Op documentation, safely below the 5G local storage budget.
 3. It has a 36-substation / 59-line grid, which is more convincing for risk-adaptive authorization demos than the case14 smoke-test environments.
-4. Grid2Op stores downloaded datasets outside this repository, usually under `/home/breeze/data_grid2op`.
+4. CRAFT stores downloaded datasets under the project-local ignored directory `data/grid2op`.
 
 Useful commands:
 
@@ -162,8 +162,20 @@ conda run -n craft make check-grid-real PYTHON=python
 
 The downloader uses curated direct dataset URLs and checks the remote archive size before download when `Content-Length` is available. The default dataset asset currently reports `896,471,190` bytes from Azure Blob storage.
 If the remote size probe times out, the downloader prints a warning and continues; the local 5G budget is still enforced through the curated dataset metadata and extraction-size check.
-When `curl` is available, the downloader uses resumable mode (`curl -C -`) with retries. If the large file transfer is slow or interrupted, run the same download command again and it will continue from the partial archive in `/home/breeze/data_grid2op/.downloads`.
+When `curl` is available, the downloader uses resumable mode (`curl -C -`) with retries. If the large file transfer is slow or interrupted, run the same download command again and it will continue from the partial archive in `/home/breeze/my-project/CRAFT/data/grid2op/.downloads`.
 If `curl` returns HTTP range error `33`, the script will automatically discard the incompatible partial archive and retry from scratch without resumable mode.
+
+CRAFT scripts point Grid2Op to the project-local directory by default:
+
+```bash
+/home/breeze/my-project/CRAFT/data/grid2op
+```
+
+Override it only when you intentionally want datasets on another disk:
+
+```bash
+export CRAFT_GRID2OP_DATA_DIR=/path/to/grid2op-data
+```
 
 If the default 2020 dataset is too slow on the current network, use the smaller non-test fallback:
 

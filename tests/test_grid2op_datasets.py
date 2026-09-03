@@ -54,3 +54,11 @@ def test_l2rpn_2019_legacy_import_patch_is_idempotent(tmp_path: Path) -> None:
     assert grid2op_datasets.L2RPN_2019_NEW_IMPORT in config_path.read_text(encoding="utf-8")
 
     assert grid2op_datasets.apply_dataset_compatibility_patches("l2rpn_2019", dataset_dir) == ()
+
+
+def test_default_grid2op_data_dir_is_project_local(monkeypatch) -> None:
+    monkeypatch.delenv(grid2op_datasets.ENV_GRID2OP_DATA_DIR, raising=False)
+
+    assert grid2op_datasets.get_configured_grid2op_data_dir() == (
+        grid2op_datasets.REPO_ROOT / "data" / "grid2op"
+    )

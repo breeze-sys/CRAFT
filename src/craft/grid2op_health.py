@@ -41,8 +41,12 @@ def run_grid2op_smoke(env_name: str, *, test: bool = True) -> Grid2OpHealthResul
         import grid2op
 
         if not test:
-            from craft.grid2op_datasets import apply_dataset_compatibility_patches
+            from craft.grid2op_datasets import (
+                apply_dataset_compatibility_patches,
+                configure_grid2op_data_dir,
+            )
 
+            configure_grid2op_data_dir()
             for patch_message in apply_dataset_compatibility_patches(env_name):
                 print(f"Compatibility patch: {patch_message}")
         env = grid2op.make(env_name, test=test)

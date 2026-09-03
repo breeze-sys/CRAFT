@@ -41,4 +41,7 @@ build/
 logs/
 tmp/
 temp/
+
+# Local datasets
+data/grid2op/
 data_grid2op/

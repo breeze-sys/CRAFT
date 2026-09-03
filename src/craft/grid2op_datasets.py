@@ -20,6 +20,9 @@ from typing import Any
 MAX_DATASET_BYTES = 5 * 1024**3
 DEFAULT_NON_TEST_DATASET = "l2rpn_neurips_2020_track1_small"
 CHUNK_SIZE = 1024 * 1024
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_GRID2OP_DATA_DIR = REPO_ROOT / "data" / "grid2op"
+ENV_GRID2OP_DATA_DIR = "CRAFT_GRID2OP_DATA_DIR"
 L2RPN_2019_OLD_IMPORT = "from grid2op.Chronics import ReadPypowNetData"
 L2RPN_2019_NEW_IMPORT = "from grid2op.Chronics.readPypowNetData import ReadPypowNetData"
 
@@ -98,11 +101,25 @@ def _suppress_grid2op_warnings() -> None:
     warnings.filterwarnings("ignore", message="It is the first time you use the environment.*")
 
 
-def get_grid2op_data_dir() -> Path:
-    _suppress_grid2op_warnings()
-    import grid2op
+def get_configured_grid2op_data_dir() -> Path:
+    data_dir = os.getenv(ENV_GRID2OP_DATA_DIR)
+    if data_dir:
+        return Path(data_dir).expanduser().resolve()
+    return DEFAULT_GRID2OP_DATA_DIR.resolve()
 
-    return Path(grid2op.get_current_local_dir())
+
+def configure_grid2op_data_dir(data_dir: Path | None = None) -> Path:
+    """Point Grid2Op to the CRAFT project-local dataset directory."""
+    target = (data_dir or get_configured_grid2op_data_dir()).expanduser().resolve()
+    _suppress_grid2op_warnings()
+    import grid2op.MakeEnv.PathUtils as path_utils
+
+    path_utils.DEFAULT_PATH_DATA = str(target)
+    return target
+
+
+def get_grid2op_data_dir() -> Path:
+    return configure_grid2op_data_dir()
 
 
 def get_candidate(name: str) -> DatasetCandidate:
