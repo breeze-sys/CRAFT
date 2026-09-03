@@ -13,6 +13,28 @@ conda activate craft
 python scripts/check_environment.py
 ```
 
+If the default Anaconda repository is blocked, use the China mirror file:
+
+```bash
+cd /home/breeze/my-project/CRAFT
+conda env create -f environment-cn.yml
+conda activate craft
+python scripts/check_environment.py
+```
+
+Or create the environment in two explicit steps:
+
+```bash
+cd /home/breeze/my-project/CRAFT
+conda create -n craft \
+  -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge \
+  --override-channels \
+  python=3.10 pip -y
+conda activate craft
+python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
+python scripts/check_environment.py
+```
+
 If the `craft` environment already exists:
 
 ```bash
@@ -43,6 +65,26 @@ bash scripts/bootstrap_env.sh
 
 The script prefers conda when available and falls back to `python3.10 -m venv`.
 
+To use the China mirror file with the bootstrap script:
+
+```bash
+cd /home/breeze/my-project/CRAFT
+CRAFT_CONDA_ENV_FILE=environment-cn.yml bash scripts/bootstrap_env.sh
+```
+
+## Offline Local Package Fallback
+
+If package sources are temporarily unreachable, you can still create a lightweight local environment and install only the CRAFT package itself:
+
+```bash
+cd /home/breeze/my-project/CRAFT
+conda run -n mia python -m venv .venv
+.venv/bin/python -m pip install -e . --no-deps --no-build-isolation
+.venv/bin/python scripts/check_environment.py
+```
+
+This does not install Grid2Op, gmssl or other runtime dependencies. It only makes local scripts and package imports work while waiting for package-source network access to recover.
+
 ## Current Host Note
 
 At the time this setup was written:
@@ -54,6 +96,16 @@ At the time this setup was written:
 
 Once package-source network access is restored, use the conda setup path above.
 
+If `conda activate craft` reports `EnvironmentNameNotFound`, it means the create step failed and no environment was created. Re-run the create step first, preferably with `environment-cn.yml` if `repo.anaconda.com` is blocked.
+
+If `python scripts/check_environment.py` reports `ModuleNotFoundError: No module named 'craft'`, either pull the latest repository version or run:
+
+```bash
+PYTHONPATH=src python scripts/check_environment.py
+```
+
+The latest script already adds `src` to `sys.path` automatically, so this should no longer be necessary after updating.
+
 ## Checks
 
 ```bash
@@ -64,4 +116,3 @@ make format
 ```
 
 Before dependencies are installed, `scripts/check_environment.py` will report missing packages. That is expected.
-

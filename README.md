@@ -350,6 +350,15 @@ conda activate craft
 python scripts/check_environment.py
 ```
 
+如果 `repo.anaconda.com` 连接失败，可以改用镜像版：
+
+```bash
+cd /home/breeze/my-project/CRAFT
+conda env create -f environment-cn.yml
+conda activate craft
+python scripts/check_environment.py
+```
+
 如果使用本地虚拟环境：
 
 ```bash
@@ -365,21 +374,25 @@ python scripts/check_environment.py
 
 ```bash
 make setup
+make setup-local
 make check
 make test
 make lint
 make format
 ```
 
+`make setup-local` 只安装 CRAFT 项目自身，不安装第三方依赖，适合包源暂时不可达时先跑本地脚本。
+
 当前仓库已经包含：
 
 1. `pyproject.toml`：Python 包元数据、运行依赖、开发依赖和工具配置。
 2. `environment.yml`：conda 环境定义。
-3. `requirements.txt` 和 `requirements-dev.txt`：pip 安装入口。
-4. `.env.example`：本地环境变量模板。
-5. `src/craft`：后续核心代码包。
-6. `scripts/check_environment.py`：环境健康检查脚本。
-7. `tests`：基础测试目录。
+3. `environment-cn.yml`：使用清华镜像的 conda 环境定义。
+4. `requirements.txt` 和 `requirements-dev.txt`：pip 安装入口。
+5. `.env.example`：本地环境变量模板。
+6. `src/craft`：后续核心代码包。
+7. `scripts/check_environment.py`：环境健康检查脚本。
+8. `tests`：基础测试目录。
 
 注意：`.env`、虚拟环境、缓存、构建产物和密钥文件已在 `.gitignore` 中排除。
 

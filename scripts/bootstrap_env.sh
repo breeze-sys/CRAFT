@@ -4,8 +4,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if command -v conda >/dev/null 2>&1; then
-  echo "Creating conda environment from environment.yml..."
-  conda env create -f environment.yml
+  env_file="${CRAFT_CONDA_ENV_FILE:-environment.yml}"
+  echo "Creating conda environment from ${env_file}..."
+  conda env create -f "${env_file}"
   echo
   echo "Activate it with:"
   echo "  conda activate craft"
@@ -21,4 +22,3 @@ else
   python -m pip install -e ".[dev]"
   python scripts/check_environment.py
 fi
-
