@@ -10,6 +10,7 @@ htmlcov/
 
 # Virtual environments
 .venv/
+.conda/
 venv/
 env/
 
@@ -39,4 +40,3 @@ build/
 logs/
 tmp/
 temp/
-

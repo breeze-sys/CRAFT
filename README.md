@@ -333,7 +333,63 @@ Replay Resistance:
 7. 工业级 PKI。
 8. 自己训练电力大模型。
 
-## 10. Demo Plan
+## 10. Environment Setup
+
+推荐使用 Python 3.10。默认 Python 3.13 对 Grid2Op、pandapower、lightsim2grid 等科学计算和电力仿真依赖可能存在兼容风险，因此项目配置约束为：
+
+```text
+Python >=3.10,<3.13
+```
+
+如果使用 conda：
+
+```bash
+cd /home/breeze/my-project/CRAFT
+conda env create -f environment.yml
+conda activate craft
+python scripts/check_environment.py
+```
+
+如果使用本地虚拟环境：
+
+```bash
+cd /home/breeze/my-project/CRAFT
+python3.10 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+python scripts/check_environment.py
+```
+
+常用开发命令：
+
+```bash
+make setup
+make check
+make test
+make lint
+make format
+```
+
+当前仓库已经包含：
+
+1. `pyproject.toml`：Python 包元数据、运行依赖、开发依赖和工具配置。
+2. `environment.yml`：conda 环境定义。
+3. `requirements.txt` 和 `requirements-dev.txt`：pip 安装入口。
+4. `.env.example`：本地环境变量模板。
+5. `src/craft`：后续核心代码包。
+6. `scripts/check_environment.py`：环境健康检查脚本。
+7. `tests`：基础测试目录。
+
+注意：`.env`、虚拟环境、缓存、构建产物和密钥文件已在 `.gitignore` 中排除。
+
+更详细的本机安装说明和故障排查见 `docs/setup.md`。也可以直接运行：
+
+```bash
+bash scripts/bootstrap_env.sh
+```
+
+## 11. Demo Plan
 
 **Demo 1：正常低风险操作**
 
@@ -355,7 +411,7 @@ Replay Resistance:
 
 审批时风险为 L1；等待期间修改环境状态，执行前重新仿真得到 L3。系统提示风险升级，原授权失效，需要 Operator、Dispatcher 和 Safety Officer 重新审批。
 
-## 11. Evaluation Metrics
+## 12. Evaluation Metrics
 
 安全实验：
 
@@ -384,7 +440,7 @@ Replay Resistance:
 
 注意：人工审批等待时间不应计入密码协议本身性能。
 
-## 12. Team Split
+## 13. Team Split
 
 三人开发时可以按边界并行：
 
@@ -400,7 +456,7 @@ Replay Resistance:
 
 负责 LLM Agent 或 scripted Agent、Tool Adapter、Web Dashboard、Approval UI、Audit UI、攻击 Demo 和系统集成。
 
-## 13. Reporting Angle
+## 14. Reporting Angle
 
 作品报告建议围绕以下主线写：
 
@@ -425,7 +481,7 @@ AI Agent 进入电力控制后，静态接口权限无法表达实时物理风�
 
 > 现有 AI Agent 授权机制通常依据操作类别、权限范围或静态风险等级决定是否允许执行；然而在电力系统中，同一控制动作的实际风险高度依赖实时运行状态，导致静态授权无法准确反映物理控制后果。CRAFT 面向 AI 电网智能体可信执行，构建物理后果驱动的密码授权机制：首先利用电网数字孪生对 Agent 候选动作进行执行前仿真，生成由可信评估器签名的物理后果证书 PCC，并依据预计线路负载、拓扑变化、安全裕度等指标动态确定多角色认证强度；随后利用 SM2/SM3 将控制动作、物理后果、授权策略和审批者身份进行密码绑定。针对电网状态持续变化带来的审批到执行状态漂移问题，系统在真实执行前重新评估当前物理后果，当风险等级升级时使原授权失效并触发动态再认证，从而形成“智能体决策、物理验证、密码授权、动态再验证、可信执行、密码回执”的完整安全闭环。
 
-## 14. References
+## 15. References
 
 1. ChatGPT planning summary: https://chatgpt.com/s/t_6a95692e05ac81918e8c02daebcb5fa9
 2. TwinGridShield: https://arxiv.org/abs/2608.15391
@@ -435,4 +491,3 @@ AI Agent 进入电力控制后，静态接口权限无法表达实时物理风�
 6. Grid2Op available environments: https://grid2op.readthedocs.io/en/latest/available_envs.html
 7. PowerMCP: https://github.com/Power-Agent/PowerMCP
 8. PowerAgentBench: https://github.com/Power-Agent/PowerAgentBench
-
