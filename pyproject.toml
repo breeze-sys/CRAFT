@@ -34,11 +34,13 @@ dev = [
   "ruff>=0.6,<1"
 ]
 grid-accelerated = [
-  "lightsim2grid>=0.9,<1"
+  "lightsim2grid>=0.9,<1",
+  "numba>=0.60,<1"
 ]
 
 [project.scripts]
 craft-env-check = "craft.environment:main"
+craft-grid2op-check = "craft.grid2op_health:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -62,4 +64,3 @@ packages = ["craft"]
 strict = true
 warn_unused_ignores = true
 warn_return_any = true
-

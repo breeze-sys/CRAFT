@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-.PHONY: setup setup-local check check-full test lint format
+.PHONY: setup setup-local check check-full check-grid test lint format
 
 setup:
 	$(PYTHON) -m pip install --upgrade pip
@@ -14,6 +14,9 @@ check:
 
 check-full:
 	PYTHONPATH=src $(PYTHON) scripts/check_environment.py --full
+
+check-grid:
+	PYTHONPATH=src $(PYTHON) scripts/check_grid2op.py --all-defaults
 
 test:
 	PYTHONPATH=src $(PYTHON) -m pytest

@@ -377,6 +377,7 @@ make setup
 make setup-local
 make check
 make check-full
+make check-grid
 make test
 make lint
 make format
@@ -384,6 +385,8 @@ make format
 
 `make setup-local` 只安装 CRAFT 项目自身，不安装第三方依赖，适合包源暂时不可达时先跑本地脚本。
 `make check` 只检查基础 Python 和项目导入，`make check-full` 才检查 Grid2Op、gmssl 等完整运行依赖。
+`make check-grid` 会创建 `l2rpn_case14_sandbox` 和 `educ_case14_redisp`，并各执行一次空动作 step，用于验证 Grid2Op 仿真底座。
+如需 Grid2Op 加速，可额外安装 `python -m pip install -e ".[grid-accelerated]"`；第一版功能演示不强制要求。
 
 当前仓库已经包含：
 

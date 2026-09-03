@@ -8,8 +8,9 @@ SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from craft.environment import main  # noqa: E402
+from craft.grid2op_health import main
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

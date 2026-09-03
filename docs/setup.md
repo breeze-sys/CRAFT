@@ -113,11 +113,21 @@ The latest script already adds `src` to `sys.path` automatically, so this should
 ```bash
 make check
 make check-full
+make check-grid
 make test
 make lint
 make format
 ```
 
 `make check` only verifies the baseline Python/project setup. `make check-full` additionally verifies runtime dependencies such as Grid2Op and gmssl.
+`make check-grid` creates the default Grid2Op case14 smoke-test environments and runs one no-op step in each.
 
 Before dependencies are installed, `scripts/check_environment.py --full` will report missing packages. That is expected.
+
+Optional Grid2Op acceleration:
+
+```bash
+python -m pip install -e ".[grid-accelerated]"
+```
+
+Keep this optional for the first MVP; the default PandaPower backend is enough for functional demos.

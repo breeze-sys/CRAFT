@@ -11,7 +11,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-
 RECOMMENDED_PYTHON = ">=3.10,<3.13"
 RUNTIME_IMPORTS = (
     "fastapi",
