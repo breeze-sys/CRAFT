@@ -127,3 +127,139 @@ Grid2Op env: l2rpn_2019
 ### 当前判断
 
 `l2rpn_2019` 已下载到项目本地数据目录，并能在非 test 模式下完成 Grid2Op reset 与 noop step。成员2可以基于该数据集继续开发 Consequence Evaluator、Risk Engine 和执行前 Revalidation。
+
+## 成员2第一阶段代码实现记录
+
+### 最小 Risk Engine
+
+本次只实现 Risk Engine，不实现 Grid2Op evaluator 和 revalidation。
+
+新增文件：
+
+- `src/craft/risk_engine.py`
+- `tests/test_risk_engine.py`
+
+实现内容：
+
+- 输入：已有 `ConsequenceMetrics`
+- 输出：已有 `RiskLevel`
+- 默认入口：`evaluate_risk(metrics)`
+- 可复用对象：`RiskEngine`、`RiskThresholds`、`DEFAULT_RISK_ENGINE`
+
+默认风险规则：
+
+- `REJECT`：不收敛、孤岛、负荷切除、非有限数值、严重线路越限 `max_line_loading_ratio >= 1.20`、新增过载线路数 `>= 3`
+- `L3`：线路负载率 `>= 0.95`、轻微越限如 `max_line_loading_ratio = 1.01`、新增过载线路数为 1 到 2、redispatch 幅度 `>= 50 MW`、断线、拓扑变化子站数 `>= 3`
+- `L2`：线路负载率 `>= 0.85`、redispatch 幅度 `>= 20 MW`、存在少量拓扑变化
+- `L1`：未触发以上条件的低风险动作
+
+测试覆盖：
+
+- `max_line_loading_ratio` 阈值边界：`0.85`、`0.95`、`1.20`
+- 轻微越限：`1.01` 判为 `L3`，不直接 `REJECT`
+- 新增过载线路数边界：`0/1/2/3`
+- redispatch、拓扑变化、断线的风险升级边界
+- 不收敛、孤岛、负荷切除、非有限数值的拒绝路径
+
+## 成员2第二阶段代码实现记录
+
+### Grid2Op Consequence Evaluator 指标抽取
+
+本次只实现 Grid2Op consequence metrics extraction，不实现 revalidation，不修改根目录 `README.md`，也不修改已有协议模型语义。
+
+新增文件：
+
+- `src/craft/grid2op_evaluator.py`
+- `tests/test_grid2op_evaluator.py`
+
+实现内容：
+
+- `extract_consequence_metrics(obs_before, obs_after, done, info, action_request)`：把 Grid2Op step 前后 observation、`done`、`info` 和已有 `ActionRequest` 转成已有 `ConsequenceMetrics`
+- `evaluate_consequence_risk(metrics)`：调用第一阶段 `risk_engine.evaluate_risk(metrics)`，返回已有 `RiskLevel`
+- 支持 `noop` 和 `redispatch` 的指标抽取；`redispatch_mw` 从 `ActionRequest.parameters` 中的 `delta_mw`、`redispatch_mw` 等字段提取绝对 MW 幅度
+
+当前抽取的指标：
+
+- `max_line_loading_ratio`：来自 `obs_after.rho` 的最大有限值
+- `new_overload_count`：统计 before 未越限但 after 越限的线路数
+- `min_security_margin`：`1.0 - max_line_loading_ratio`
+- `converged`：`obs_after` 存在、`done=False`、`rho` 有限且 `info` 未报告异常时为 true
+- `islanding`：从 `info` 中的 islanding 相关字段提取
+- `load_shed_mw`：优先从 `info` 中的 load shed 相关字段提取
+- `redispatch_mw`：从 redispatch 类型 `ActionRequest` 参数提取
+- `disconnected_line_count`：优先比较 `line_status` before/after，缺少 observation 时可从 disconnect action 参数估计
+- `topology_changed_substations`：优先结合 `topo_vect` 和 `sub_info` 比较变化子站数，缺少 observation 时可从 topology action 参数估计
+
+测试覆盖：
+
+- fake observation 下的 noop 指标抽取
+- redispatch 的绝对 MW 幅度提取，并通过 `evaluate_consequence_risk` 得到 `L2`
+- `max_line_loading_ratio = 1.0094` 的轻微越限路径判为 `L3`，不直接 `REJECT`
+- `done=True` 和 `info["exception"]` 导致 `converged=False` 并判为 `REJECT`
+- islanding、load shed、断线、拓扑变化子站数的指标抽取
+
+已运行验证：
+
+```bash
+/home/user7377/miniforge3/bin/conda run -n craft python -m pytest -q --tb=short
+/home/user7377/miniforge3/bin/conda run -n craft python -m ruff check src/craft/grid2op_evaluator.py tests/test_grid2op_evaluator.py src/craft/risk_engine.py tests/test_risk_engine.py
+/home/user7377/miniforge3/bin/conda run -n craft python -m mypy src/craft/grid2op_evaluator.py src/craft/risk_engine.py
+```
+
+结果：
+
+- `pytest`：`42 passed in 0.14s`
+- `ruff`：`All checks passed!`
+- `mypy`：`Success: no issues found in 2 source files`
+
+补充检查：
+
+- `python -m ruff check .`：通过
+- `python -m mypy src/craft`：当前仍有既有模块类型检查问题，涉及 `serialization.py`、`grid2op_datasets.py`、`grid2op_health.py`；本次新增的 `grid2op_evaluator.py` 和第一阶段 `risk_engine.py` 类型检查已单独通过
+
+## 成员2第三阶段代码实现记录
+
+### Execution-Time Revalidation
+
+本次只实现审批后、执行前的风险重验证决策逻辑，不实现 SM2 真签名、CA、Dashboard、Agent，也不引入真实 Grid2Op 数据集依赖；未修改根目录 `README.md`，未修改已有协议模型语义。
+
+新增文件：
+
+- `src/craft/revalidation.py`
+- `tests/test_revalidation.py`
+
+实现内容：
+
+- `RevalidationResult`：返回 `decision`、`approval_risk_level`、`execution_risk_level`、`reason`
+- `RISK_LEVEL_ORDER` / `risk_level_rank(risk_level)`：定义风险等级顺序 `L1 < L2 < L3 < REJECT`
+- `revalidate_execution(approval_pcc, execution_metrics)`：输入审批时 `PhysicalConsequenceCertificate` 和执行前 `ConsequenceMetrics`，通过 `risk_engine.evaluate_risk(metrics)` 重新计算 execution-time risk
+- `decide_revalidation(approval_risk_level, execution_risk_level)`：执行最终决策
+
+默认决策规则：
+
+- execution risk 为 `REJECT`：返回 `ExecutionDecision.REJECT`
+- execution risk 高于 approval-time risk：返回 `ExecutionDecision.REQUIRE_REAUTHORIZATION`
+- execution risk 小于或等于 approval-time risk：返回 `ExecutionDecision.ALLOW`
+
+测试覆盖：
+
+- `L1 -> L1`：`allow`
+- `L2 -> L1`：`allow`
+- `L1 -> L2`：`require_reauthorization`
+- `L2 -> L3`：`require_reauthorization`
+- `L3 -> REJECT`：`reject`
+- `REJECT -> REJECT`：`reject`
+
+已运行验证：
+
+```bash
+/home/user7377/miniforge3/bin/conda run -n craft python -m pytest -q --tb=short
+/home/user7377/miniforge3/bin/conda run -n craft python -m ruff check src/craft/revalidation.py tests/test_revalidation.py src/craft/grid2op_evaluator.py tests/test_grid2op_evaluator.py src/craft/risk_engine.py tests/test_risk_engine.py
+/home/user7377/miniforge3/bin/conda run -n craft python -m mypy src/craft/revalidation.py src/craft/grid2op_evaluator.py src/craft/risk_engine.py
+```
+
+结果：
+
+- `pytest`：`48 passed in 0.14s`
+- `ruff`：`All checks passed!`
+- `mypy`：`Success: no issues found in 3 source files`
