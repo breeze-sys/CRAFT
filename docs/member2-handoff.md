@@ -100,3 +100,30 @@
 python scripts/download_grid2op_dataset.py list
 make download-grid-data
 make check-grid-real
+```
+
+### 真实 Grid2Op smoke check 结果
+
+- `make check-grid-real`：通过
+- 默认非 test 数据集：`l2rpn_2019`
+- 数据目录：`data/grid2op/l2rpn_2019`
+- 当前本地磁盘占用：约 `276M`
+
+输出摘要：
+
+```text
+Grid2Op env: l2rpn_2019
+  actual env: l2rpn_2019PandaPowerBackend
+  backend: PandaPowerBackend_l2rpn_2019PandaPowerBackend
+  lines: 20
+  generators: 5
+  loads: 11
+  redispatchable generators: 4
+  max rho during smoke test: 1.0094
+  reward type: float32
+  done after noop: False
+```
+
+### 当前判断
+
+`l2rpn_2019` 已下载到项目本地数据目录，并能在非 test 模式下完成 Grid2Op reset 与 noop step。成员2可以基于该数据集继续开发 Consequence Evaluator、Risk Engine 和执行前 Revalidation。
