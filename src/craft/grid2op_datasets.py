@@ -89,8 +89,7 @@ CURATED_NON_TEST_DATASETS: tuple[DatasetCandidate, ...] = (
         grid_size="36 substations, 59 lines",
         recommended_for="older full WCCI 2020 dataset, close to the storage cap",
         url=(
-            "https://l2rpnukstorageprem.blob.core.windows.net/l2rpnarchive/"
-            "l2rpn_wcci_2020.tar.bz2"
+            "https://l2rpnukstorageprem.blob.core.windows.net/l2rpnarchive/l2rpn_wcci_2020.tar.bz2"
         ),
     ),
 )
@@ -121,7 +120,7 @@ def configure_grid2op_data_dir(data_dir: Path | None = None) -> Path:
             target = REPO_ROOT / target
         target = target.resolve()
     _suppress_grid2op_warnings()
-    import grid2op.MakeEnv.PathUtils as path_utils
+    import grid2op.MakeEnv.PathUtils as path_utils  # type: ignore[import-untyped]
 
     path_utils.DEFAULT_PATH_DATA = str(target)
     return target

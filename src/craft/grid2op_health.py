@@ -38,7 +38,7 @@ def run_grid2op_smoke(env_name: str, *, test: bool = True) -> Grid2OpHealthResul
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="Numba cannot be loaded.*")
         warnings.filterwarnings("ignore", message="You are using a development environment.*")
-        import grid2op
+        import grid2op  # type: ignore[import-untyped]
 
         if not test:
             from craft.grid2op_datasets import (
@@ -117,6 +117,7 @@ def build_parser() -> ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    env_names: tuple[str, ...]
     if args.real_default:
         env_names = (DEFAULT_GRID2OP_REAL_ENV,)
         test = False

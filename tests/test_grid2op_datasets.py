@@ -44,8 +44,7 @@ def test_l2rpn_2019_legacy_import_patch_is_idempotent(tmp_path: Path) -> None:
     dataset_dir.mkdir()
     config_path = dataset_dir / "config.py"
     config_path.write_text(
-        "from grid2op.Chronics import Multifolder\n"
-        "from grid2op.Chronics import ReadPypowNetData\n",
+        "from grid2op.Chronics import Multifolder\nfrom grid2op.Chronics import ReadPypowNetData\n",
         encoding="utf-8",
     )
 

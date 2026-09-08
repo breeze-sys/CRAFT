@@ -76,7 +76,7 @@ def canonical_json_bytes(value: Any) -> bytes:
 def sm3_digest_hex(payload: bytes | str) -> str:
     """Return an SM3 hex digest for raw bytes or UTF-8 text."""
     data = payload.encode("utf-8") if isinstance(payload, str) else payload
-    return sm3.sm3_hash(func.bytes_to_list(data))
+    return cast(str, sm3.sm3_hash(func.bytes_to_list(data)))
 
 
 def canonical_digest_hex(value: Any) -> str:
