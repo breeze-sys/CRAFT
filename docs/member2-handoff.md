@@ -100,3 +100,95 @@
 python scripts/download_grid2op_dataset.py list
 make download-grid-data
 make check-grid-real
+```
+
+### 真实 Grid2Op smoke check 结果
+
+- `make check-grid-real`：通过
+- 默认非 test 数据集：`l2rpn_2019`
+- 数据目录：`data/grid2op/l2rpn_2019`
+
+输出摘要：
+
+```text
+Grid2Op env: l2rpn_2019
+  actual env: l2rpn_2019PandaPowerBackend
+  backend: PandaPowerBackend_l2rpn_2019PandaPowerBackend
+  lines: 20
+  generators: 5
+  loads: 11
+  redispatchable generators: 4
+  max rho during smoke test: 1.0094
+  reward type: float32
+  done after noop: False
+```
+
+### 当前判断
+
+`l2rpn_2019` 已下载到项目本地数据目录，并能在非 test 模式下完成 Grid2Op reset 与 noop step。成员2可以基于该数据集继续开发真实 Grid2Op simulation callback。
+
+## 成员2后续任务：真实 Grid2Op Simulation Callback
+
+### Grid2Op Action 映射与 sandbox 仿真
+
+本次目标是实现 `Grid2OpConsequenceEvaluator` 背后的真实 Grid2Op simulation callback，不重复实现已有 `craft.grid.risk`、`craft.grid.evaluator`、`craft.grid.revalidation`，不实现 SM2 真签名、CA、Dashboard 或 Agent，也不修改根目录 `README.md`。
+
+新增/更新文件：
+
+- `src/craft/grid/grid2op_actions.py`
+- `src/craft/grid/grid2op_simulator.py`
+- `src/craft/grid/__init__.py`
+- `tests/test_grid2op_actions.py`
+- `tests/test_grid2op_simulator.py`
+
+实现内容：
+
+- `action_request_to_grid2op_payload(action_request)`：按 `src/craft/grid/README.md` 的参数约定，把 CRAFT `ActionRequest.parameters` 转为 Grid2Op action payload
+- `action_request_to_grid2op_action(action_space, action_request)`：调用 Grid2Op `action_space` 生成真实 action，并把 Grid2Op “ignored key” warning 转为 `Grid2OpActionError`，避免静默变成 noop
+- 支持 `redispatch`、`disconnect_line`、`reconnect_line`、`change_topology`，同时允许空参数 `noop`
+- 严格拒绝缺失参数、未知参数、互斥参数同时出现、重复 id、越界 id、不可 redispatch generator 和不支持 action type
+- `Grid2OpSimulator`：可作为 `Grid2OpConsequenceEvaluator` 的 `simulate(action)` callback，返回 `Grid2OpStepResult(obs_before, obs_after, done, info, reward)`
+- 默认 Grid2Op env 为 `l2rpn_2019`，通过 `craft.grid2op_datasets.configure_grid2op_data_dir()` 使用项目相对数据目录 `data/grid2op`
+- 默认创建 Grid2Op env 时使用 `CompleteAction`，确保 redispatch action 不被默认 topology-only action class 静默忽略
+- 支持传入 live env 时先 `env.copy()`，并只在 copied/sandbox env 上执行 step，避免污染 live execution environment
+- 在 `info["craft_grid2op_metadata"]` 中返回 state/predicted-state metadata，并预先填充 `state_digest`、`predicted_state_digest`，便于复现 digest
+
+测试覆盖：
+
+- redispatch 参数映射：`{"gen_id": 2, "delta_mw": -30.0}` -> `{"redispatch": [(2, -30.0)]}`
+- disconnect/reconnect line 映射到 `set_line_status`
+- change_topology 的 `topology_vector` 映射到 `set_bus.substations_id`
+- 缺失参数、未知参数、歧义参数、空 id 列表、不支持 action type 均抛 `Grid2OpActionError`
+- Grid2Op action_space warning 包含 ignored 时拒绝，避免把请求静默变成 noop
+- fake live env 通过 `copy()` 创建 sandbox，step 只发生在 sandbox 上，live env 不被污染
+- fake env_factory 路径会 reset fresh sandbox
+- step 异常返回 `done=True`、`obs_after=None`、`simulation_failed=True` 的失败 `Grid2OpStepResult`
+- state digest 和 predicted state digest 可用返回 metadata 复现
+
+已运行验证：
+
+```bash
+/home/user7377/miniforge3/bin/conda run -n craft python -m pytest -q --tb=short
+/home/user7377/miniforge3/bin/conda run -n craft python -m ruff check .
+/home/user7377/miniforge3/bin/conda run -n craft python -m mypy src/craft
+/home/user7377/miniforge3/bin/conda run -n craft make check-grid-real PYTHON=python
+```
+
+结果：
+
+- `pytest`：`102 passed in 7.22s`
+- `ruff`：`All checks passed!`
+- `mypy`：`Success: no issues found in 24 source files`
+- `make check-grid-real`：通过，`l2rpn_2019` reset + noop step 正常
+
+真实 callback smoke：
+
+```text
+noop       -> L1, max rho 0.8277, redispatch_mw 0.0, converged True
+redispatch -> L1, max rho 0.8260, redispatch_mw 1.0, converged True
+```
+
+备注：
+
+- `l2rpn_2019` 中 `gen_id=0` 不可 redispatch；真实 smoke 使用可 redispatch 的 `gen_id=1`
+- pytest 新增测试均使用 fake env / fake action_space，不依赖真实数据集下载
