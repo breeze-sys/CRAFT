@@ -176,6 +176,13 @@ The demo uses deterministic mock consequence values. It does not call Grid2Op di
 Member B can later replace `MockConsequenceEvaluator` with a real Grid2Op
 evaluator while keeping the same Member A protocol calls.
 
+To run the same security protocol path with Member B's real Grid2Op simulator
+callback and local `l2rpn_2019` data:
+
+```bash
+conda run --no-capture-output -n craft python scripts/demo_security_protocol.py --evaluator grid2op
+```
+
 Attack and rejection scenarios:
 
 ```bash

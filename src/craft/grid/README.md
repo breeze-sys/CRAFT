@@ -218,6 +218,7 @@ The Member A demo also goes through this contract:
 
 ```bash
 conda run --no-capture-output -n craft python scripts/demo_security_protocol.py
+conda run --no-capture-output -n craft python scripts/demo_security_protocol.py --evaluator grid2op
 ```
 
 ## Member B Next Work

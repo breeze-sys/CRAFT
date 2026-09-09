@@ -15,6 +15,7 @@ SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from craft.grid import make_grid2op_consequence_evaluator
 from craft.models import (
     ActionRequest,
     ActionType,
@@ -102,8 +103,10 @@ def _create_action(delta_mw: float = 20.0) -> ActionRequest:
     )
 
 
-def _build_demo_context() -> DemoContext:
-    protocol = create_demo_security_protocol()
+def _build_demo_context(evaluator: str = "mock") -> DemoContext:
+    protocol = create_demo_security_protocol(
+        evaluator=make_grid2op_consequence_evaluator() if evaluator == "grid2op" else None
+    )
     credentials = protocol.credentials
     public_registry = protocol.registry
     replay_cache = protocol.replay_cache
@@ -144,11 +147,12 @@ def _build_demo_context() -> DemoContext:
     )
 
 
-def _print_context(ctx: DemoContext, scenario: str) -> None:
+def _print_context(ctx: DemoContext, scenario: str, evaluator: str) -> None:
     required_roles = DEFAULT_RISK_POLICY.required_roles_for(ctx.pcc.risk_level)
     print("CRAFT Member A Security Protocol Demo")
     print("=" * 44)
     print(f"Scenario:          {scenario}")
+    print(f"Evaluator:         {evaluator}")
     print(f"Action type:       {ctx.action.action_type.value}")
     print(f"Action digest:     {_short(ctx.action.action_digest)}")
     print(f"Risk level:        {ctx.pcc.risk_level.value}")
@@ -180,9 +184,9 @@ def _print_verification_result(result: VerificationResult) -> None:
     print()
 
 
-def _run_happy_path() -> int:
-    ctx = _build_demo_context()
-    _print_context(ctx, "happy-path")
+def _run_happy_path(evaluator: str) -> int:
+    ctx = _build_demo_context(evaluator=evaluator)
+    _print_context(ctx, "happy-path", evaluator)
 
     pcc_result = explain_pcc_for_action(
         ctx.pcc,
@@ -447,9 +451,9 @@ EXPECTED_ERROR_CODES = {
 }
 
 
-def _run_attack_scenario(scenario: str) -> int:
-    ctx = _build_demo_context()
-    _print_context(ctx, scenario)
+def _run_attack_scenario(scenario: str, evaluator: str) -> int:
+    ctx = _build_demo_context(evaluator=evaluator)
+    _print_context(ctx, scenario, evaluator)
     result = SCENARIO_RUNNERS[scenario](ctx)
     expected_code = EXPECTED_ERROR_CODES[scenario]
     _print_verification_result(result)
@@ -469,14 +473,20 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default="happy-path",
         help="Demo scenario to run. Attack scenarios exit 0 when expected rejection is observed.",
     )
+    parser.add_argument(
+        "--evaluator",
+        choices=("mock", "grid2op"),
+        default="mock",
+        help="Consequence evaluator backend. grid2op requires the local l2rpn_2019 dataset.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     if args.scenario == "happy-path":
-        return _run_happy_path()
-    return _run_attack_scenario(args.scenario)
+        return _run_happy_path(args.evaluator)
+    return _run_attack_scenario(args.scenario, args.evaluator)
 
 
 if __name__ == "__main__":
