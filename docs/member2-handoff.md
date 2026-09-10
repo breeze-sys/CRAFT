@@ -192,3 +192,72 @@ redispatch -> L1, max rho 0.8260, redispatch_mw 1.0, converged True
 
 - `l2rpn_2019` 中 `gen_id=0` 不可 redispatch；真实 smoke 使用可 redispatch 的 `gen_id=1`
 - pytest 新增测试均使用 fake env / fake action_space，不依赖真实数据集下载
+
+## 成员2后续任务：真实 Grid2Op 报告实验
+
+本次目标是补充两个显式运行的真实 Grid2Op 报告实验，不重复实现已有
+`craft.grid.risk`、`craft.grid.evaluator`、`craft.grid.revalidation` 或
+`craft.security.protocol` 核心逻辑，不修改根目录 `README.md`，也不把真实数据集接入普通
+pytest。
+
+新增文件：
+
+- `scripts/demo_member2_grid2op_experiments.py`
+
+实现内容：
+
+- 实验脚本默认使用项目相对数据目录 `data/grid2op/l2rpn_2019`
+- 通过真实 Grid2Op env metadata 自动选择第一个可 redispatch generator；当前
+  `l2rpn_2019` 为 `gen_id=1`
+- 用 noop 从 reset episode 向前扫描状态，默认最多扫描 260 个 timestep
+- 每次后果评估都通过 `Grid2OpSimulator(env=...)` 复制 live selector env，并在 copied
+  sandbox env 上执行 Grid2Op step
+- 实验1使用同一个 `ActionRequest(redispatch, gen_id=1, delta_mw=1.0)`，在两个真实电网
+  状态下产生不同风险等级
+- 实验2使用同一个 `ActionRequest(redispatch, gen_id=1, delta_mw=20.0)`，先在审批时得到
+  L2 PCC，再把 execution-time metrics 接入 `consume_ticket_and_issue_receipt(...)`
+  触发现有 revalidation 错误码
+- 终端输出包含运行命令、数据集/env、Grid2Op version、backend、episode/timestep、动作参数、
+  max rho、新增过载数、安全裕度、converged、islanding/load_shed、redispatch/topology 变化、
+  RiskLevel、required roles、action digest、PCC digest、policy digest、state/predicted
+  digest 和 revalidation code/decision
+
+实验状态选择结果：
+
+- 实验1：
+  - episode `0001` timestep `0`：`delta_mw=1.0`，`max_rho=0.8260`，`RiskLevel=L1`
+  - episode `0001` timestep `2`：`delta_mw=1.0`，`max_rho=0.8665`，`RiskLevel=L2`
+- 实验2：
+  - approval-time episode `0001` timestep `0`：`delta_mw=20.0`，`max_rho=0.8021`，
+    `RiskLevel=L2`
+  - execution-time episode `0001` timestep `48`：`max_rho=0.9824`，`RiskLevel=L3`，
+    protocol code `revalidation_required`，decision `require_reauthorization`
+  - execution-time episode `0001` timestep `231`：`converged=false`，`RiskLevel=REJECT`，
+    protocol code `revalidation_rejected`，decision `reject`
+
+本次没有修改 risk 阈值、ActionRequest 到 Grid2Op action 的映射、默认数据集路径或普通测试策略。
+
+运行方式：
+
+```bash
+/home/user7377/miniforge3/bin/conda run -n craft python scripts/demo_member2_grid2op_experiments.py
+```
+
+已运行验证：
+
+```bash
+/home/user7377/miniforge3/bin/conda run -n craft python -m pytest -q --tb=short
+/home/user7377/miniforge3/bin/conda run -n craft python -m ruff check .
+/home/user7377/miniforge3/bin/conda run -n craft python -m mypy src/craft
+/home/user7377/miniforge3/bin/conda run -n craft make check-grid-real PYTHON=python
+/home/user7377/miniforge3/bin/conda run -n craft python scripts/demo_member2_grid2op_experiments.py
+```
+
+结果：
+
+- `pytest`：`102 passed in 6.80s`
+- `ruff`：`All checks passed!`
+- `mypy`：`Success: no issues found in 24 source files`
+- `make check-grid-real`：通过，`max rho during smoke test: 1.0094`，`done after noop: False`
+- `demo_member2_grid2op_experiments.py`：通过，观察到 `revalidation_required` 和
+  `revalidation_rejected`
