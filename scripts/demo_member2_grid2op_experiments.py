@@ -54,6 +54,7 @@ from craft.security import (
 DEFAULT_EXP1_DELTA_MW = 1.0
 DEFAULT_EXP2_DELTA_MW = 20.0
 DEFAULT_SCAN_STEPS = 260
+DEFAULT_OUTPUT = REPO_ROOT / "artifacts" / "grid" / "member2_grid2op_report_experiments.json"
 REPORT_CREATED_AT = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
 
@@ -422,9 +423,200 @@ def _run_experiments(args: argparse.Namespace, *, run_command: str) -> int:
         revalidation_required.ticket_consumption.code.value == "revalidation_required"
         and revalidation_rejected.ticket_consumption.code.value == "revalidation_rejected"
     )
+    report = _build_report(
+        run_command=run_command,
+        env_name=args.env_name,
+        dataset_path=dataset_path,
+        gen_id=gen_id,
+        max_scan_steps=args.max_scan_steps,
+        exp1_action=exp1_action,
+        exp1_l1=exp1_l1,
+        exp1_l2=exp1_l2,
+        exp1_l1_auth=exp1_l1_auth,
+        exp1_l2_auth=exp1_l2_auth,
+        exp2_action=exp2_action,
+        approval_l2=approval_l2,
+        execution_l3=execution_l3,
+        execution_reject=execution_reject,
+        approval_auth=approval_auth,
+        revalidation_required=revalidation_required,
+        revalidation_rejected=revalidation_rejected,
+        expected_revalidation_codes_observed=required_ok,
+    )
+    output = _resolve_output_path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
     print()
     print(f"Expected revalidation codes observed: {str(required_ok).lower()}")
+    print(f"JSON report artifact: {output}")
     return 0 if required_ok else 1
+
+
+def _build_report(
+    *,
+    run_command: str,
+    env_name: str,
+    dataset_path: Path,
+    gen_id: int,
+    max_scan_steps: int,
+    exp1_action: ActionRequest,
+    exp1_l1: ReportEvaluation,
+    exp1_l2: ReportEvaluation,
+    exp1_l1_auth: AuthorizationBundle,
+    exp1_l2_auth: AuthorizationBundle,
+    exp2_action: ActionRequest,
+    approval_l2: ReportEvaluation,
+    execution_l3: ReportEvaluation,
+    execution_reject: ReportEvaluation,
+    approval_auth: AuthorizationBundle,
+    revalidation_required: ExecutedAction,
+    revalidation_rejected: ExecutedAction,
+    expected_revalidation_codes_observed: bool,
+) -> dict[str, Any]:
+    return {
+        "project": "CRAFT",
+        "artifact_type": "member2_grid2op_report_experiments",
+        "generated_at_unix": int(datetime.now(timezone.utc).timestamp()),
+        "run_command": run_command,
+        "dataset": {
+            "env_name": env_name,
+            "path": str(dataset_path),
+            "grid2op_version": exp1_l1.simulator.version,
+            "backend": exp1_l1.simulator.backend,
+        },
+        "parameters": {
+            "gen_id": gen_id,
+            "max_scan_steps": max_scan_steps,
+            "exp1_delta_mw": exp1_action.parameters["delta_mw"],
+            "exp2_delta_mw": exp2_action.parameters["delta_mw"],
+        },
+        "summary": {
+            "experiment1_same_action_different_risk": exp1_l1.risk_level != exp1_l2.risk_level,
+            "experiment2_expected_revalidation_codes_observed": (
+                expected_revalidation_codes_observed
+            ),
+        },
+        "experiments": {
+            "same_action_different_grid_state": {
+                "claim": (
+                    "The same CRAFT ActionRequest can require different roles "
+                    "in different physical states."
+                ),
+                "action": exp1_action.model_dump(mode="json"),
+                "state_a": _evaluation_report(
+                    "State A",
+                    action=exp1_action,
+                    record=exp1_l1,
+                    certified=exp1_l1_auth.certified,
+                    authorization=exp1_l1_auth,
+                ),
+                "state_b": _evaluation_report(
+                    "State B",
+                    action=exp1_action,
+                    record=exp1_l2,
+                    certified=exp1_l2_auth.certified,
+                    authorization=exp1_l2_auth,
+                ),
+            },
+            "approval_time_risk_drift": {
+                "claim": (
+                    "Execution-time risk drift invalidates or blocks the "
+                    "approved ticket path."
+                ),
+                "action": exp2_action.model_dump(mode="json"),
+                "approval_time": _evaluation_report(
+                    "Approval-time PCC",
+                    action=exp2_action,
+                    record=approval_l2,
+                    certified=approval_auth.certified,
+                    authorization=approval_auth,
+                ),
+                "execution_time_l3": _evaluation_report(
+                    "Execution-time L3",
+                    action=exp2_action,
+                    record=execution_l3,
+                    certified=approval_auth.certified,
+                    authorization=approval_auth,
+                    revalidation=revalidation_required,
+                ),
+                "execution_time_reject": _evaluation_report(
+                    "Execution-time REJECT",
+                    action=exp2_action,
+                    record=execution_reject,
+                    certified=approval_auth.certified,
+                    authorization=approval_auth,
+                    revalidation=revalidation_rejected,
+                ),
+            },
+        },
+    }
+
+
+def _evaluation_report(
+    label: str,
+    *,
+    action: ActionRequest,
+    record: ReportEvaluation,
+    certified: CertifiedAction,
+    authorization: AuthorizationBundle,
+    revalidation: ExecutedAction | None = None,
+) -> dict[str, Any]:
+    required_roles = DEFAULT_RISK_POLICY.required_roles_for(record.risk_level)
+    state_metadata, predicted_metadata = _metadata_from_step(record.step)
+    ticket = authorization.ticketed.ticket
+    approval_set = authorization.ticketed.authorized.approval_set
+    return {
+        "label": label,
+        "episode": record.episode,
+        "timestep": record.timestep,
+        "predicted_timestep": record.predicted_timestep,
+        "action_digest": action.action_digest,
+        "evaluation_digest": record.evaluation.digest(),
+        "pcc_digest": certified.pcc.certificate_digest(),
+        "policy_digest": certified.pcc.policy_digest,
+        "approval_set_digest": approval_set.digest() if approval_set is not None else None,
+        "ticket_digest": ticket.digest() if ticket is not None else None,
+        "state_digest": record.evaluation.state_digest,
+        "predicted_state_digest": record.evaluation.predicted_state_digest,
+        "metrics": record.evaluation.metrics.model_dump(mode="json"),
+        "risk_level": record.risk_level.value,
+        "required_roles": [role.value for role in required_roles],
+        "simulator": record.simulator.model_dump(mode="json"),
+        "grid2op_step": {
+            "done": record.step.done,
+            "reward": record.step.reward,
+            "scenario_id": record.step.scenario_id,
+            "state_metadata": state_metadata,
+            "predicted_state_metadata": predicted_metadata,
+        },
+        "verification": {
+            "pcc": certified.verification.model_dump(mode="json"),
+            "approval_set": authorization.ticketed.authorized.verification.model_dump(
+                mode="json"
+            ),
+            "ticket": authorization.ticketed.verification.model_dump(mode="json"),
+            "revalidation": _revalidation_report(revalidation),
+        },
+    }
+
+
+def _revalidation_report(executed: ExecutedAction | None) -> dict[str, Any] | None:
+    if executed is None:
+        return None
+    return {
+        "ticket_consumption": executed.ticket_consumption.model_dump(mode="json"),
+        "revalidation": executed.revalidation.model_dump(mode="json")
+        if executed.revalidation is not None
+        else None,
+        "receipt_issued": executed.receipt is not None,
+        "receipt_verification": executed.receipt_verification.model_dump(mode="json")
+        if executed.receipt_verification is not None
+        else None,
+    }
 
 
 def _metadata_from_step(
@@ -508,6 +700,15 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default=DEFAULT_SCAN_STEPS,
         help="Maximum noop-advanced timesteps to scan for report states.",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help=(
+            "JSON report artifact path. Defaults to "
+            "artifacts/grid/member2_grid2op_report_experiments.json."
+        ),
+    )
     return parser.parse_args(list(argv))
 
 
@@ -515,6 +716,10 @@ def _run_command(argv: Sequence[str]) -> str:
     script = Path(__file__).relative_to(REPO_ROOT)
     args = " ".join(argv)
     return f"python {script}{(' ' + args) if args else ''}"
+
+
+def _resolve_output_path(path: Path) -> Path:
+    return path if path.is_absolute() else REPO_ROOT / path
 
 
 def main(argv: Sequence[str] | None = None) -> int:

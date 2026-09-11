@@ -361,6 +361,37 @@ receipt_issued
 Dashboard integration. It includes action/PCC/ApprovalSet/Ticket/Receipt
 digests, risk level, role sets, verification results and audit event digests.
 
+## Evidence Collection
+
+Member A can generate report-ready protocol evidence without waiting for the
+Dashboard:
+
+```bash
+conda run --no-capture-output -n craft make protocol-evidence
+```
+
+The command writes JSON to:
+
+```text
+artifacts/protocol/security_protocol_evidence.json
+```
+
+`artifacts/` is ignored by Git. Keep the generated file locally for screenshots,
+tables and result excerpts, but do not commit it unless the team explicitly
+wants a frozen example artifact.
+
+Useful focused commands:
+
+```bash
+conda run --no-capture-output -n craft python scripts/collect_protocol_evidence.py --scenarios happy-path tamper-action replay-ticket
+conda run --no-capture-output -n craft python scripts/collect_protocol_evidence.py --evaluator grid2op --scenarios happy-path
+```
+
+The evidence bundle records scenario result codes, risk level, required roles,
+action/PCC/ApprovalSet/Ticket digests, metrics, simulator metadata, audit-chain
+digests and a compact `ProtocolTranscript`. Member C can use the same JSON shape
+as a Dashboard mock payload before the real Gateway API is finished.
+
 ## Key Handling
 
 `create_demo_credentials()` generates in-memory demo keys for local tests and

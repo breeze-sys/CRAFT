@@ -1,7 +1,7 @@
 PYTHON ?= python
 CRAFT_GRID2OP_REAL_ENV ?= l2rpn_2019
 
-.PHONY: setup setup-local check check-full check-grid check-grid-real download-grid-data test lint format
+.PHONY: setup setup-local check check-full check-grid check-grid-real download-grid-data protocol-evidence test lint format
 
 setup:
 	$(PYTHON) -m pip install --upgrade pip
@@ -24,6 +24,9 @@ check-grid-real:
 
 download-grid-data:
 	PYTHONPATH=src $(PYTHON) scripts/download_grid2op_dataset.py download $(CRAFT_GRID2OP_REAL_ENV)
+
+protocol-evidence:
+	PYTHONPATH=src $(PYTHON) scripts/collect_protocol_evidence.py
 
 test:
 	PYTHONPATH=src $(PYTHON) -m pytest

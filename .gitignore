@@ -39,6 +39,7 @@ build/
 # Logs and runtime output
 *.log
 logs/
+artifacts/
 tmp/
 temp/
 

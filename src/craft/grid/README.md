@@ -311,6 +311,35 @@ conda run --no-capture-output -n craft python scripts/demo_security_protocol.py 
 conda run --no-capture-output -n craft python scripts/demo_security_protocol.py --scenario revalidation-reject
 ```
 
+Member A has also added a lightweight evidence collector. B can run it with the
+mock evaluator for protocol-only evidence, or with `--evaluator grid2op` after
+choosing a real Grid2Op state/action scenario:
+
+```bash
+conda run --no-capture-output -n craft make protocol-evidence
+conda run --no-capture-output -n craft python scripts/collect_protocol_evidence.py --evaluator grid2op --scenarios happy-path --output artifacts/protocol/grid2op_happy_path.json
+conda run --no-capture-output -n craft python scripts/demo_member2_grid2op_experiments.py --output artifacts/grid/member2_grid2op_report_experiments.json
+```
+
+### Evidence To Keep For Report
+
+For every real Grid2Op experiment, save screenshots or terminal captures of:
+
+1. The exact command used to run the experiment.
+2. Dataset/env name, Grid2Op version, backend, episode id and timestep.
+3. The fixed `ActionRequest.parameters` used in the scenario.
+4. Before/after key metrics: max rho, new overload count, min security margin,
+   convergence, islanding, load shed, redispatch amount and topology changes.
+5. The resulting `RiskLevel` and required role set.
+6. PCC digest, policy digest and action digest.
+7. Revalidation result code when risk drifts: `revalidation_required` or
+   `revalidation_rejected`.
+8. A short note explaining why the state/action pair is meaningful for CRAFT.
+
+Record these details in this README or `docs/member2-handoff.md` whenever B
+changes experiment setup, thresholds, action mappings or dataset assumptions.
+This keeps the report reproducible and avoids relying on screenshots alone.
+
 ### Suggested Member B Deliverables
 
 Keep the package layout compact. Good candidate files:

@@ -165,7 +165,7 @@ Grid2Op env: l2rpn_2019
 - step 异常返回 `done=True`、`obs_after=None`、`simulation_failed=True` 的失败 `Grid2OpStepResult`
 - state digest 和 predicted state digest 可用返回 metadata 复现
 
-已运行验证：
+合入主线后已运行验证：
 
 ```bash
 /home/user7377/miniforge3/bin/conda run -n craft python -m pytest -q --tb=short
@@ -240,24 +240,33 @@ pytest。
 运行方式：
 
 ```bash
-/home/user7377/miniforge3/bin/conda run -n craft python scripts/demo_member2_grid2op_experiments.py
+conda run --no-capture-output -n craft python scripts/demo_member2_grid2op_experiments.py
+conda run --no-capture-output -n craft python scripts/demo_member2_grid2op_experiments.py --output artifacts/grid/member2_grid2op_report_experiments.json
 ```
+
+默认会同时生成 JSON 报告产物：
+
+```text
+artifacts/grid/member2_grid2op_report_experiments.json
+```
+
+`artifacts/` 已被 Git 忽略。报告撰写时可以截图终端输出，也可以从 JSON 中复制实验表格、metrics、digest 和 revalidation code。
 
 已运行验证：
 
 ```bash
-/home/user7377/miniforge3/bin/conda run -n craft python -m pytest -q --tb=short
-/home/user7377/miniforge3/bin/conda run -n craft python -m ruff check .
-/home/user7377/miniforge3/bin/conda run -n craft python -m mypy src/craft
-/home/user7377/miniforge3/bin/conda run -n craft make check-grid-real PYTHON=python
-/home/user7377/miniforge3/bin/conda run -n craft python scripts/demo_member2_grid2op_experiments.py
+conda run -n craft python -m pytest -q --tb=short
+conda run -n craft python -m ruff check .
+conda run -n craft python -m mypy src/craft
+conda run -n craft make check-grid-real PYTHON=python
+conda run --no-capture-output -n craft python scripts/demo_member2_grid2op_experiments.py
 ```
 
 结果：
 
-- `pytest`：`102 passed in 6.80s`
+- `pytest`：`103 passed in 8.13s`
 - `ruff`：`All checks passed!`
 - `mypy`：`Success: no issues found in 24 source files`
 - `make check-grid-real`：通过，`max rho during smoke test: 1.0094`，`done after noop: False`
 - `demo_member2_grid2op_experiments.py`：通过，观察到 `revalidation_required` 和
-  `revalidation_rejected`
+  `revalidation_rejected`，并生成 `artifacts/grid/member2_grid2op_report_experiments.json`
